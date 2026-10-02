@@ -281,7 +281,7 @@ class DataLogger(Node):
         else:
             self.cmd_vel_sub = self.create_subscription(
                 Twist, '/cmd_vel', self.cmd_vel_callback, 10)
-            self.get_logger().warn(
+            self.get_logger().warning(
                 '/cmd_vel is plain Twist (no header) — timestamps for this '
                 'topic will be logger-receipt time, NOT true command time. '
                 'Marked as "receipt_approx" in the CSV. If you need exact '
@@ -320,7 +320,7 @@ class DataLogger(Node):
         expected = ['/imu', '/odom', '/scan', '/tf', '/cmd_vel', self._pose_topic]
         missing = [t for t in expected if t not in published]
         if missing:
-            self.get_logger().warn(
+            self.get_logger().warning(
                 'These expected topics are NOT currently published: '
                 + ', '.join(missing) +
                 '. Any of these being missing means that column silently '
@@ -336,7 +336,7 @@ class DataLogger(Node):
     def _check_gt_arrived_once(self):
         self._gt_check_timer.cancel()  # create_timer repeats by default — this makes it one-shot
         if not self.gt_source_found:
-            self.get_logger().warn(
+            self.get_logger().warning(
                 f'No ground truth received yet from /tf (child frame in '
                 f'{self.gt_child_frame_ids}) or {self._pose_topic}. '
                 f'If this stays empty for the whole session, your GT column '
@@ -358,7 +358,7 @@ class DataLogger(Node):
                     return 'stamped'
                 if 'geometry_msgs/msg/Twist' in types:
                     return 'plain'
-        self.get_logger().warn(
+        self.get_logger().warning(
             '/cmd_vel not visible yet at startup — assuming plain Twist. '
             'If your controller actually publishes TwistStamped, restart '
             'this logger after the controller is up.')
@@ -499,7 +499,7 @@ class DataLogger(Node):
                 ])
                 self.gt_file.flush()
                 if not self.gt_source_found:
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         f'Ground truth currently from /tf (odom→{transform.child_frame_id}) '
                         f'— this is DEAD-RECKONING, not real ground truth. Waiting for '
                         f'/ground_truth_pose to take over as authoritative source.')
@@ -555,7 +555,7 @@ class DataLogger(Node):
             issues.append(f"range_max {msg.range_max:.3f}m (paper: {spec['range_max_m']:.2f}m)")
 
         if issues:
-            self.get_logger().warn(
+            self.get_logger().warning(
                 'LiDAR config differs from paper Table 1 — ' + '; '.join(issues) +
                 '. Fix this in the LiDAR SDF/URDF, not in this script.')
         else:
@@ -586,7 +586,7 @@ class DataLogger(Node):
                 continue
             deviation = abs(h - target) / target
             if deviation > RATE_TOLERANCE:
-                self.get_logger().warn(
+                self.get_logger().warning(
                     f'{name} rate {h:.1f} Hz differs from paper target '
                     f'{target:.0f} Hz by {deviation * 100:.0f}% '
                     f'— fix this in the sensor plugin config, not in this script.')
@@ -659,7 +659,7 @@ class DataLogger(Node):
                 capture_output=True, text=True, timeout=120
             )
             if pre_result.returncode != 0:
-                self.get_logger().warn(
+                self.get_logger().warning(
                     f'preprocess_data.py failed for {self._session_id} (exit {pre_result.returncode}): '
                     f'{pre_result.stderr.strip()[:300]} -- skipping health_check.py'
                 )
@@ -673,12 +673,12 @@ class DataLogger(Node):
                 if result.returncode == 0:
                     self.get_logger().info(f'health_check.py classified session {self._session_id}')
                 else:
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         f'health_check.py failed for {self._session_id} (exit {result.returncode}): '
                         f'{result.stderr.strip()[:300]}'
                     )
         except Exception as e:
-            self.get_logger().warn(f'Could not run preprocess/health_check automatically: {e}')
+            self.get_logger().warning(f'Could not run preprocess/health_check automatically: {e}')
 
         super().destroy_node()
 
