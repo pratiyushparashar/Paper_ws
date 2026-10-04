@@ -1,0 +1,43 @@
+# PROVISIONAL detector parameters — development only, NOT calibrated.
+# Source: session 20261003_022102 (flat floor, 13 stops), 0.5 s windows, see docs/decisions.md.
+# Final values come from the calibration pipeline (build step 7) on separate calibration runs.
+detector:
+  status: provisional
+  imu_rate_hz: 50.0
+
+  eps_cmd: 1.0e-6
+  settle_delay: 0.3            # all 13 stops settled in 0.08-0.24 s
+
+  lidar_move_thresh: 0.02      # unused until LiDAR input is wired in
+
+  n_frozen: 10                 # 0.2 s of bit-identical IMU samples (noise makes this impossible when healthy)
+
+  r_imu_min: 0.5               # unused until the LSTM exists
+  p_slip_max: 0.5
+
+  odom_v_eps: 1.0e-3
+  odom_w_eps: 1.0e-3
+
+  window: 25                   # 0.5 s at 50 Hz
+  var_floor:                   # (0.5*sigma_SDF)^2
+    gyro_z: 1.9e-5
+    accel_x: 1.0e-8
+    accel_y: 1.0e-8
+  flat:                        # ~ still p99 (7.0e-8 / 1.26e-4) with margin
+    gyro_z: 1.5e-4
+    accel_x: 1.0e-7
+    accel_y: 1.0e-7
+  veto:                        # well inside the moving distribution
+    gyro_z: 1.0e-3
+    accel_x: 1.0e-4
+    accel_y: 1.0e-5
+
+  acc_mean_thresh: 0.05        # still: |mean| ~1e-4; slide on mu=0.1 patch: 0.53
+
+  n_confirm: 5                 # 0.1 s
+  c_min: 0.5
+  r0_scale: 1.0
+  rmax_scale: 100.0
+  max_update_rate_hz: 10.0
+
+  stall_warn_time: 3.0

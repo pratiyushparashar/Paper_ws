@@ -51,3 +51,11 @@
   Variance-only Tier 4 + settle 0.3 s would commit a FALSE stationary. Added Tier 4e: gravity-compensated planar
   acceleration mean check (roll/pitch from IMU; yaw not used). LiDAR Tier 3 likely blind to along-corridor slides
   (degeneracy) -- to verify with scan data.
+
+## 2026-10-05 — Step 4: detector implemented (provisional params, config/zupt_params_dev.yaml)
+- 18 unit tests pass (realistic noise; summing-bug regression; slide; tilt; frozen IMU; hysteresis).
+- Replay vs GT: 0 false-stationary samples in all 3 sessions; recall 0.93/0.95/0.99; confirm ~0.65 s after
+  stop command (window 0.5 s + 5 frames). Stops < ~0.6 s are missed (safe direction).
+- Ablation: without Tier 4e the slip session gives 39 false samples (~0.8 s, v_gt up to 0.21 m/s); with it, 0.
+- Scoring fix: GT velocity by backward difference (central difference mislabelled the last still sample
+  before each start). Frozen-sensor check is IMU-only (odometry legitimately reads exactly 0 at rest).
