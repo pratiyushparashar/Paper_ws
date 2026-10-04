@@ -19,3 +19,13 @@
 - Relaxation removed; replaced by a stall diagnostic warning.
 - Graded confidence (log-ramp, min over axes) scales R; the binary gate uses c >= c_min.
 - Variance-only blind spot (constant-rate motion) accepted; mitigated by LiDAR in Tier 3.
+
+## 2026-10-03 — First baseline session (20261003_022102, 173 s, 13 stops)
+- Measured stationary noise matches SDF: gyro_z 8.82e-3 rad/s, accel_x 2.01e-4, accel_y 1.99e-4 m/s².
+- All stops settle to GT-still within 0.08–0.24 s (speeds up to 0.64 m/s) -> settle_delay ~0.3 s.
+- 0.5 s window variance, STILL p99 vs post-stop-moving p10: accel_x 6.9e-8 vs 1.5e-2; accel_y 6.2e-8 vs 6.8e-7;
+  gyro_z 1.3e-4 vs 6.5e-5 (OVERLAP) -> gyro alone cannot detect coasting; min-over-axes design confirmed.
+- Wheel odometry drifts on flat floor: max 2.6 m / 36 deg heading over 30 m path, accumulated while turning (skid).
+- Gazebo IMU orientation = GT to 1e-4 deg (confirms D4: do not use it). Integrated gyro drift 0.68 deg / 173 s
+  (bias ~0) -> gyro-bias variant needed.
+- Logger metadata duration/avg rates wrong (clock starts before /clock); CSVs correct. To fix later.
