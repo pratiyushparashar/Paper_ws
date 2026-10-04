@@ -6,11 +6,14 @@ Launch arguments:
                default: indoor_world.sdf     slip world: indoor_world_slip.sdf
   gyro_bias_z  gyro z bias_mean in rad/s
                default: 0.0000075 (original robot)   gyro-bias variant: 0.01
+  x, y, yaw    spawn pose (m, m, rad); default 0 0 0
+               terrain_world.sdf lane i starts at x=0, y=3.8*i (facing +x)
 
 Examples:
   ros2 launch paper_robot_sim gazebo_model.launch.py
   ros2 launch paper_robot_sim gazebo_model.launch.py world:=indoor_world_slip.sdf
   ros2 launch paper_robot_sim gazebo_model.launch.py gyro_bias_z:=0.01
+  ros2 launch paper_robot_sim gazebo_model.launch.py world:=terrain_world.sdf y:=15.2
 
 Changes vs ws_mobile/mobile_robot: package renamed; gz_args "-r -v4" (Gazebo 10 rejects
 "-v -v4"); world and gyro bias selectable via launch arguments (OpaqueFunction, because
@@ -40,6 +43,7 @@ def launch_setup(context, *args, **kwargs):
 
     gyro_bias_z = LaunchConfiguration('gyro_bias_z').perform(context)
     float(gyro_bias_z)  # fail early on a non-numeric value
+    sx, sy, syaw = (float(LaunchConfiguration(k).perform(context)) for k in ('x', 'y', 'yaw'))
 
     robot_description = xacro.process_file(
         os.path.join(share, 'model', 'robot.xacro'),
@@ -55,7 +59,8 @@ def launch_setup(context, *args, **kwargs):
 
     spawn = Node(
         package='ros_gz_sim', executable='create',
-        arguments=['-name', ROBOT_NAME, '-topic', 'robot_description'],
+        arguments=['-name', ROBOT_NAME, '-topic', 'robot_description',
+                   '-x', str(sx), '-y', str(sy), '-z', '0.0', '-Y', str(syaw)],
         output='screen',
     )
 
@@ -72,7 +77,8 @@ def launch_setup(context, *args, **kwargs):
         output='screen',
     )
 
-    print(f'[paper_robot_sim] world={world_path}  gyro_bias_z={gyro_bias_z}')
+    print(f'[paper_robot_sim] world={world_path}  gyro_bias_z={gyro_bias_z}  '
+          f'spawn=({sx}, {sy}, yaw {syaw})')
     return [gazebo, spawn, robot_state_publisher, bridge]
 
 
@@ -82,5 +88,8 @@ def generate_launch_description():
                               description='World file in paper_robot_sim/model/ or absolute path'),
         DeclareLaunchArgument('gyro_bias_z', default_value='0.0000075',
                               description='Gyro z bias_mean (rad/s); 0.01 for the gyro-bias variant'),
+        DeclareLaunchArgument('x', default_value='0.0', description='spawn x (m)'),
+        DeclareLaunchArgument('y', default_value='0.0', description='spawn y (m)'),
+        DeclareLaunchArgument('yaw', default_value='0.0', description='spawn yaw (rad)'),
         OpaqueFunction(function=launch_setup),
     ])
