@@ -7,6 +7,14 @@ current and past samples. It never reads the EKF state (skeleton change 3).
 Safety principle: a false "stationary" is worse than a missed one. Every check can only
 BLOCK a stop; only the IMU stillness evidence (Tier 4d, together with 4e) can support one,
 and confirmation needs N consecutive candidate frames.
+
+Stuck path (step 5b): with a NONZERO command the robot may still be immobilized (pushing an
+obstacle, high-centred, wheels spinning). The wheels then report motion and odometry runs away.
+Under command the IMU alone cannot tell standing still from constant-velocity driving, so this
+path needs a second, velocity-sensitive confirmation: the LiDAR hypothesis test must show that
+the scan is unchanged (H0) AND contradicts the motion the wheels claim (H1), see core/lidar.py.
+Only then are the IMU stillness checks (4a, r_imu, 4d, 4e) evaluated. Odometry (4c) and P_slip
+are not used on this path: wheels contradicting the robot is exactly the situation it detects.
 """
 from collections import deque
 from dataclasses import dataclass, field
@@ -33,7 +41,12 @@ class Evidence:
     w_cmd: float = 0.0
     v_odom: float = None
     w_odom: float = None
-    lidar_delta: float = None    # median |Δrange| between scans (m)
+    lidar_changed: float = None  # fraction of beams changed vs previous scan (Tier 3)
+    lidar_age: float = None      # s since that scan
+    lidar_out0: float = None     # H0 outlier fraction vs reference scan (stuck check)
+    lidar_out1: float = None     # H1 outlier fraction (wheel-claimed motion)
+    lidar_ref_age: float = None  # s the scan has been unchanged
+    lidar_claim: float = None    # m, wheel-claimed translation since the reference
     r_imu: float = None
     r_odom: float = None
     p_slip: float = None
@@ -121,38 +134,63 @@ class StationarityDetector:
         self._same_count = self._same_count + 1 if raw == self._last_raw else 0
         self._last_raw = raw
 
-        # Tier 1: commanded motion
+        # Tier 1: commanded motion (unless the stuck path confirms immobilization)
         moving_cmd = abs(e.v_cmd) > cfg.eps_cmd or abs(e.w_cmd) > cfg.eps_cmd
         if moving_cmd:
             self._cmd_moving = True
             self._stall_warned = False
+            if cfg.stuck_enable and self._lidar_says_stuck(e):
+                return self._imu_stage(s, e, stuck=True)
             return self._reject(s.t, "tier1_command")
         if self._cmd_moving:                 # transition to zero command
             self._cmd_moving = False
             self._t_stop = s.t
+            self._consecutive = 0
+            self._committed = False
 
         # Tier 2: settle delay
         if self._t_stop is not None and s.t - self._t_stop < cfg.settle_delay:
             return self._reject(s.t, "tier2_settling")
 
         # Tier 3: LiDAR scan change (blocks only)
-        if e.lidar_delta is not None and e.lidar_delta > cfg.lidar_move_thresh:
+        if (e.lidar_changed is not None and self._lidar_fresh(e)
+                and e.lidar_changed > cfg.lidar_changed_thresh):
             return self._reject(s.t, "tier3_lidar")
 
+        return self._imu_stage(s, e, stuck=False)
+
+    # ------------------------------------------------------------------ stages
+    def _lidar_fresh(self, e):
+        return e.lidar_age is None or e.lidar_age <= self.cfg.lidar_max_age
+
+    def _lidar_says_stuck(self, e):
+        c = self.cfg
+        vals = (e.lidar_out0, e.lidar_out1, e.lidar_ref_age, e.lidar_claim, e.lidar_age)
+        if any(v is None or v != v for v in vals):          # missing or nan
+            return False
+        return (e.lidar_age <= c.lidar_max_age
+                and e.lidar_ref_age >= c.stuck_min_ref_age
+                and e.lidar_claim >= c.stuck_min_claim
+                and e.lidar_out0 <= c.stuck_max_out0
+                and e.lidar_out1 - e.lidar_out0 >= c.stuck_margin)
+
+    def _imu_stage(self, s, e, stuck):
+        cfg = self.cfg
         # Tier 4a: frozen IMU = failed sensor, never "still"
         if self._same_count + 1 >= cfg.n_frozen:
             return self._reject(s.t, "tier4a_imu_frozen")
 
-        # Tier 4b: learned evidence
+        # Tier 4b: learned evidence (slip is expected on the stuck path, so not checked there)
         if e.r_imu is not None and e.r_imu < cfg.r_imu_min:
             return self._reject(s.t, "tier4b_r_imu_low")
-        if e.p_slip is not None and e.p_slip >= cfg.p_slip_max:
+        if not stuck and e.p_slip is not None and e.p_slip >= cfg.p_slip_max:
             return self._reject(s.t, "tier4b_slip")
 
         # Tier 4c: odometry may block, never confirm; skipped when the wheels are not trusted
+        # and on the stuck path
         wheels_trusted = e.r_odom is None or e.r_odom >= cfg.r_odom_min
-        if wheels_trusted and e.v_odom is not None and (abs(e.v_odom) >= cfg.odom_v_eps
-                                     or abs(e.w_odom or 0.0) >= cfg.odom_w_eps):
+        if (not stuck and wheels_trusted and e.v_odom is not None
+                and (abs(e.v_odom) >= cfg.odom_v_eps or abs(e.w_odom or 0.0) >= cfg.odom_w_eps)):
             return self._reject(s.t, "tier4c_odometry")
 
         if len(self._buf[AXES[0]]) < cfg.window:
@@ -173,7 +211,8 @@ class StationarityDetector:
 
         if conf < cfg.c_min:
             out = self._reject(s.t, "low_confidence", var, (mx, my), conf)
-            self._maybe_stall(s.t, var)
+            if not stuck:
+                self._maybe_stall(s.t, var)
             return out
 
         # Candidate frame: hysteresis
@@ -186,8 +225,8 @@ class StationarityDetector:
         apply = (s.t - self._last_update_t) >= 1.0 / cfg.max_update_rate_hz - 1e-9
         if apply:
             self._last_update_t = s.t
-        return DetectorOutput(s.t, True, True, conf, cfg.r_scale(conf), apply, "stationary",
-                              var, (mx, my))
+        return DetectorOutput(s.t, True, True, conf, cfg.r_scale(conf), apply,
+                              "stuck" if stuck else "stationary", var, (mx, my))
 
     def _maybe_stall(self, t, var):
         if (not self._stall_warned and self._t_stop is not None

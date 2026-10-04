@@ -49,6 +49,37 @@ def load_session(data_dir, sid):
     return imu, odom, cmd, gt
 
 
+def load_scans(data_dir, sid):
+    """Scan CSV or None (sessions recorded before the LiDAR was logged have none)."""
+    p = os.path.join(data_dir, f"scan_{sid}.csv")
+    if not os.path.exists(p):
+        return None
+    sc = pd.read_csv(p)
+    sc["t"] = _t(sc)
+    return sc
+
+
+def lidar_evidence(scans, odom, lever_l=0.3, odom_v=None, odom_w=None, **check_kw):
+    """Run ScanMotionCheck over a session. Wheel claims come from the odometry twist
+    (odom_v/odom_w override it, e.g. to replay a wheel fault). Returns a list of LidarEvidence."""
+    from zupt.core.lidar import ScanMotionCheck
+    chk = ScanMotionCheck(**check_kw)
+    ot = odom.t.values
+    ov = odom.linear_x.values if odom_v is None else odom_v
+    ow = odom.angular_z.values if odom_w is None else odom_w
+    out, j = [], 0
+    for k in range(len(scans)):
+        ts = scans.t.iat[k]
+        while j < len(ot) and ot[j] <= ts:
+            if j > 0:
+                chk.add_odom(ov[j - 1], ow[j - 1], ot[j] - ot[j - 1], lever_l)
+            j += 1
+        r = np.array(scans.ranges.iat[k].split(";"), float)
+        out.append(chk.step(ts, r, scans.angle_min.iat[k], scans.angle_increment.iat[k],
+                            scans.range_min.iat[k], scans.range_max.iat[k]))
+    return out
+
+
 def gt_truth(imu_t, gt):
     _, _, yaw = quat_to_rpy(gt.gt_orient_x, gt.gt_orient_y, gt.gt_orient_z, gt.gt_orient_w)
     yaw = np.unwrap(yaw)

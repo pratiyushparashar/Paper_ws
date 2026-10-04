@@ -187,7 +187,7 @@ def test_learned_evidence_blocks(cfg):
 
 
 def test_lidar_blocks(cfg):
-    outs = run(quiet(cfg), still_samples(200), Evidence(v_odom=0.0, w_odom=0.0, lidar_delta=0.1))
+    outs = run(quiet(cfg), still_samples(200), Evidence(v_odom=0.0, w_odom=0.0, lidar_changed=0.1, lidar_age=0.05))
     assert not any(o.stationary for o in outs)
 
 
@@ -216,4 +216,54 @@ def test_distrusted_odometry_does_not_block(cfg):
     outs = run(quiet(cfg), still_samples(200), Evidence(v_odom=0.3, w_odom=0.0, r_odom=1.0))
     assert not any(o.stationary for o in outs)
     outs = run(quiet(cfg), still_samples(200), Evidence(v_odom=0.3, w_odom=0.0, r_odom=0.1))
+    assert any(o.stationary for o in outs)
+
+
+# ---------------------------------------------------------------- stuck path (step 5b)
+STUCK = dict(lidar_out0=0.0, lidar_out1=0.3, lidar_ref_age=1.0, lidar_claim=0.4, lidar_age=0.05)
+
+
+def test_stuck_commits_under_command_when_lidar_contradicts_wheels(cfg):
+    ev = Evidence(v_cmd=0.3, v_odom=0.3, w_odom=0.0, p_slip=0.9, **STUCK)
+    outs = run(quiet(cfg), still_samples(200), ev)
+    assert any(o.stationary for o in outs)
+    assert all(o.reason == "stuck" for o in outs if o.stationary)
+
+
+def test_no_stuck_when_lidar_cannot_tell(cfg):
+    """Degenerate scene: H1 fits as well as H0 (corridor along its axis) -> refuse."""
+    ev = Evidence(v_cmd=0.3, v_odom=0.3, w_odom=0.0, **dict(STUCK, lidar_out1=0.02))
+    assert not any(o.stationary for o in run(quiet(cfg), still_samples(200), ev))
+
+
+def test_no_stuck_without_lidar_or_with_stale_lidar(cfg):
+    for ev in (Evidence(v_cmd=0.3, v_odom=0.3, w_odom=0.0),
+               Evidence(v_cmd=0.3, v_odom=0.3, w_odom=0.0, **dict(STUCK, lidar_age=1.0))):
+        assert not any(o.stationary for o in run(quiet(cfg), still_samples(200), ev))
+
+
+def test_no_stuck_when_imu_accelerating(cfg):
+    """LiDAR claims stuck but the IMU shows a real acceleration -> IMU checks still block."""
+    ev = Evidence(v_cmd=0.3, v_odom=0.3, w_odom=0.0, **STUCK)
+    outs = run(quiet(cfg), still_samples(200, ax0=0.3), ev)
+    assert not any(o.stationary for o in outs)
+
+
+def test_no_stuck_before_wheels_claim_enough(cfg):
+    ev = Evidence(v_cmd=0.3, v_odom=0.3, w_odom=0.0, **dict(STUCK, lidar_claim=0.1))
+    assert not any(o.stationary for o in run(quiet(cfg), still_samples(200), ev))
+
+
+def test_stuck_disabled_by_config(cfg):
+    c2 = dataclasses.replace(cfg, stuck_enable=False)
+    ev = Evidence(v_cmd=0.3, v_odom=0.3, w_odom=0.0, **STUCK)
+    assert not any(o.stationary for o in run(quiet(c2), still_samples(200), ev))
+
+
+def test_stale_lidar_does_not_block_tier3(cfg):
+    ev = Evidence(v_odom=0.0, w_odom=0.0, lidar_changed=0.5, lidar_age=5.0)
+    outs = stop_then_still(quiet(cfg))
+    det = quiet(cfg)
+    run(det, still_samples(25, seed=1, ax0=0.5), Evidence(v_cmd=0.5, v_odom=0.5, w_odom=0.0))
+    outs = run(det, still_samples(150, t0=0.5, seed=2), ev)
     assert any(o.stationary for o in outs)

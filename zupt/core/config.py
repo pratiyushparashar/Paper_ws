@@ -24,7 +24,15 @@ class DetectorConfig:
     settle_delay: float            # s after the stop command before a stop may be confirmed
 
     # --- Tier 3 (LiDAR scan change; optional input) ---
-    lidar_move_thresh: float       # m, median |Δrange| above this = moving
+    lidar_changed_thresh: float    # fraction of beams changed vs previous scan above this = moving
+    lidar_max_age: float           # s, LiDAR evidence older than this is ignored
+
+    # --- stuck detection (stationary while commanded; needs LiDAR) ---
+    stuck_enable: bool
+    stuck_min_claim: float         # m, wheels must claim at least this translation since reference
+    stuck_margin: float            # H1 outlier fraction - H0 outlier fraction at least this
+    stuck_max_out0: float          # H0 outlier fraction at most this (scan unchanged)
+    stuck_min_ref_age: float       # s, scan unchanged for at least this long
 
     # --- Tier 4a (frozen IMU) ---
     n_frozen: int                  # identical consecutive IMU samples => sensor failed

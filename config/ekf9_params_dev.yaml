@@ -1,0 +1,28 @@
+# PROVISIONAL 9-state IMU-driven EKF parameters (step 5b) — development only, NOT tuned.
+# Tuning must use calibration runs only (never evaluation runs).
+ekf9:
+  status: provisional
+  lever_l: 0.3            # m, IMU ahead of wheel axle (robot.xacro s2 = 2r); geometry, not tuned
+  # process noise densities (per second)
+  q_xy: 1.0e-6
+  q_theta: 1.0e-6
+  q_acc: 1.0e-3           # velocity random walk: accel noise + ZOH + tilt error slack
+  q_w: 0.1                # same as the 6-state filter
+  q_bg: 1.0e-8            # gyro bias random walk
+  q_ba: 1.0e-6            # accel bias random walk
+  k_w_slip: 50.0
+  nhc_p_skip: 0.5        # NHC off when P_slip >= this (same level as detector p_slip_max)
+  # measurement noise (variances)
+  r_odom_v: 2.5e-3        # same as the 6-state filter
+  r_odom_w: 1.0e-2
+  r_gyro: 7.6e-5          # (0.00873 rad/s)^2 from the SDF
+  r_zupt: 1.0e-6          # (0.001 m/s)^2 on u and s, scaled by detector R(c)
+  r_zaru: 1.0e-6
+  r_nhc: 1.0e-4           # (0.01 m/s)^2 lateral slack at the axle, loosened by P_slip
+  # initial uncertainty (std)
+  p0_xy: 0.01
+  p0_theta: 0.01
+  p0_v: 0.1
+  p0_w: 0.1
+  p0_bg: 0.02
+  p0_ba: 0.1              # ~10 mg: uncalibrated MEMS accel bias
