@@ -38,6 +38,6 @@ detector:
   c_min: 0.5
   r0_scale: 1.0
   rmax_scale: 100.0
-  max_update_rate_hz: 10.0
+  max_update_rate_hz: 50.0      # = IMU rate (no limit); 10 Hz caused heading jumps, see decisions 2026-10-05
 
   stall_warn_time: 3.0

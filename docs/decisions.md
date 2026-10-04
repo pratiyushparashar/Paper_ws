@@ -59,3 +59,13 @@
 - Ablation: without Tier 4e the slip session gives 39 false samples (~0.8 s, v_gt up to 0.21 m/s); with it, 0.
 - Scoring fix: GT velocity by backward difference (central difference mislabelled the last still sample
   before each start). Frozen-sensor check is IMU-only (odometry legitimately reads exactly 0 at rest).
+
+## 2026-10-05 — Step 6: 6-state EKF [x,y,θ,v,ω,b_g] with ZUPT/ZARU (provisional params)
+- 11 EKF tests pass (29 total). Gazebo IMU orientation never used; heading from ω only.
+- Bias session (wheels distrusted): bias 0.01001 ± 0.00035 (true 0.00988), heading RMSE 0.06° with ZARU vs 21.8° without.
+- Flat-floor session: trusting wheel yaw rate lets skid leak into the bias (est -0.0018 vs ~0) -> heading RMSE 15.7°;
+  ZARU at stops -> 0.71°. Motivates LSTM r_odom down-weighting during turns.
+- ZUPT adds nothing when wheel v is exact at rest (sim); its value must be shown under odometry faults.
+- Spec amendment A2: ZUPT/ZARU applied at every IMU sample while committed (10 Hz rate limit caused heading
+  jumps from θ–ω correlation: 4.2° -> 0.4° RMSE). q_w 1.0 -> 0.1. Both provisional; final tuning on calibration runs.
+- Position RMSE ~0.4 m on flat floor remains (wheel-speed error while turning) -> needs absolute fix (change 1).
