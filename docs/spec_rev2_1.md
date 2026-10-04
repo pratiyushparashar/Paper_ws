@@ -173,3 +173,12 @@ Evidence: docs/decisions.md 2026-10-05 (slide with flat variance, mean -0.53 m/s
 - Over window W: |mean(a_h,x)| ≥ acc_mean_thresh or |mean(a_h,y)| ≥ acc_mean_thresh → NOT stationary (blocks only).
 - acc_mean_thresh (cal); must exceed accel bias + noise of the mean (~1e-4 + σ/√W).
 - Tests must include: constant-deceleration slide with flat variance → NOT stationary.
+
+---
+
+## Amendment A1 (2026-10-05) — Tier 4e, acceleration mean check
+Evidence: docs/decisions.md 2026-10-05 (slide with flat variance, mean -0.53 m/s^2).
+- Gravity-compensate accel using IMU roll/pitch only: a_h = R(roll,pitch)·a − g.
+- Over window W: |mean(a_h,x)| ≥ acc_mean_thresh or |mean(a_h,y)| ≥ acc_mean_thresh → NOT stationary (blocks only).
+- acc_mean_thresh (cal); must exceed accel bias + noise of the mean (~1e-4 + σ/√W).
+- Tests must include: constant-deceleration slide with flat variance → NOT stationary.
