@@ -209,3 +209,11 @@ def test_update_rate_limited(cfg):
     n_upd = sum(o.apply_update for o in st)
     assert n_upd <= dur * cfg.max_update_rate_hz + 1
     assert n_upd >= dur * cfg.max_update_rate_hz - 1
+
+
+def test_distrusted_odometry_does_not_block(cfg):
+    """Faulty wheels (noisy v) must block when trusted, but are skipped when r_odom is low."""
+    outs = run(quiet(cfg), still_samples(200), Evidence(v_odom=0.3, w_odom=0.0, r_odom=1.0))
+    assert not any(o.stationary for o in outs)
+    outs = run(quiet(cfg), still_samples(200), Evidence(v_odom=0.3, w_odom=0.0, r_odom=0.1))
+    assert any(o.stationary for o in outs)

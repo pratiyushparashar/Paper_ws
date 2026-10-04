@@ -69,3 +69,9 @@
 - Spec amendment A2: ZUPT/ZARU applied at every IMU sample while committed (10 Hz rate limit caused heading
   jumps from θ–ω correlation: 4.2° -> 0.4° RMSE). q_w 1.0 -> 0.1. Both provisional; final tuning on calibration runs.
 - Position RMSE ~0.4 m on flat floor remains (wheel-speed error while turning) -> needs absolute fix (change 1).
+
+## 2026-10-05 — Development evaluation script + r_odom gate skip
+- zupt/evaluation/dev_eval.py: baselines (wheel odometry, existing Fixed EKF with exact / gyro heading) vs new EKF
+  with/without ZUPT+ZARU, and under injected odometry faults (noise, frozen, scale) with r_odom=1 vs oracle r.
+- Detector: odometry gate skipped when r_odom < r_odom_min (spec §3 Tier 4c, previously missing). No effect until
+  the LSTM provides r_odom.

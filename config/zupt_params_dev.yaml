@@ -13,6 +13,7 @@ detector:
   n_frozen: 10                 # 0.2 s of bit-identical IMU samples (noise makes this impossible when healthy)
 
   r_imu_min: 0.5               # unused until the LSTM exists
+  r_odom_min: 0.5              # below this the odometry gate is skipped (faulty wheels must not block ZUPT)
   p_slip_max: 0.5
 
   odom_v_eps: 1.0e-3

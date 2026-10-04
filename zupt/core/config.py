@@ -31,6 +31,7 @@ class DetectorConfig:
 
     # --- Tier 4b (learned evidence; optional inputs) ---
     r_imu_min: float               # IMU evidence ignored (=> not stationary) below this
+    r_odom_min: float              # odometry gate skipped (wheels not trusted) below this
     p_slip_max: float              # slip probability at/above this => not stationary
 
     # --- Tier 4c (odometry gate; blocks only) ---

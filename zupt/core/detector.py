@@ -35,6 +35,7 @@ class Evidence:
     w_odom: float = None
     lidar_delta: float = None    # median |Δrange| between scans (m)
     r_imu: float = None
+    r_odom: float = None
     p_slip: float = None
 
 
@@ -148,8 +149,9 @@ class StationarityDetector:
         if e.p_slip is not None and e.p_slip >= cfg.p_slip_max:
             return self._reject(s.t, "tier4b_slip")
 
-        # Tier 4c: odometry may block, never confirm
-        if e.v_odom is not None and (abs(e.v_odom) >= cfg.odom_v_eps
+        # Tier 4c: odometry may block, never confirm; skipped when the wheels are not trusted
+        wheels_trusted = e.r_odom is None or e.r_odom >= cfg.r_odom_min
+        if wheels_trusted and e.v_odom is not None and (abs(e.v_odom) >= cfg.odom_v_eps
                                      or abs(e.w_odom or 0.0) >= cfg.odom_w_eps):
             return self._reject(s.t, "tier4c_odometry")
 
