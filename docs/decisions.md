@@ -29,3 +29,14 @@
 - Gazebo IMU orientation = GT to 1e-4 deg (confirms D4: do not use it). Integrated gyro drift 0.68 deg / 173 s
   (bias ~0) -> gyro-bias variant needed.
 - Logger metadata duration/avg rates wrong (clock starts before /clock); CSVs correct. To fix later.
+
+## 2026-10-05 — Step 3 tests (slip world 20261004_235739, gyro bias 20261005_000755)
+- SLIP GATE PASSED. Stops on mu=0.1 patch: wheels zero in 0.02 s, body slides 22-23 cm over ~0.95 s
+  (decel 0.53 m/s^2 ~ mu*g*wheel load share; caster frictionless). Restart on patch: odom 0.60 m vs GT 0.38 m
+  (+59% wheel spin). Off-patch stop: 1.7 cm in 0.12 s.
+- GYRO BIAS PASSED: 0.00988 +/- 0.00015 rad/s (set 0.01), stable; integrated heading drift 41 deg / 73 s;
+  Gazebo IMU orientation unaffected by bias (confirms D4).
+- DESIGN FINDING: during the slide, accel variance (3.1e-8) equals still variance, but accel mean = -0.53 m/s^2.
+  Variance-only Tier 4 + settle 0.3 s would commit a FALSE stationary. Added Tier 4e: gravity-compensated planar
+  acceleration mean check (roll/pitch from IMU; yaw not used). LiDAR Tier 3 likely blind to along-corridor slides
+  (degeneracy) -- to verify with scan data.
