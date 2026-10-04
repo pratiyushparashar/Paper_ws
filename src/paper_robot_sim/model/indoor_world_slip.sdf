@@ -1,0 +1,250 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="indoor_world">
+
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+    </light>
+
+    <!-- Floor -->
+    <model name="floor">
+      <static>true</static>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <link name="floor_link">
+        <collision name="floor_collision">
+          <geometry><box><size>22 16 0.1</size></box></geometry>
+        </collision>
+        <visual name="floor_visual">
+          <geometry><box><size>22 16 0.1</size></box></geometry>
+          <material>
+            <ambient>0.80 0.78 0.72 1</ambient>
+            <diffuse>0.80 0.78 0.72 1</diffuse>
+            <specular>0.05 0.05 0.05 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- OUTER WALLS (world: x=-10 to +10, y=-7 to +7) -->
+
+    <!-- North outer wall -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0 7 1.0 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>20.6 0.3 2.0</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>20.6 0.3 2.0</size></box></geometry>
+          <material><ambient>0.545 0.271 0.075 1</ambient><diffuse>0.545 0.271 0.075 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- South outer wall -->
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -7 1.0 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>20.6 0.3 2.0</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>20.6 0.3 2.0</size></box></geometry>
+          <material><ambient>0.550 0.275 0.080 1</ambient><diffuse>0.550 0.275 0.080 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- East outer wall -->
+    <model name="wall_east">
+      <static>true</static>
+      <pose>10 0 1.0 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>0.3 14.6 2.0</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>0.3 14.6 2.0</size></box></geometry>
+          <material><ambient>0.555 0.279 0.085 1</ambient><diffuse>0.555 0.279 0.085 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- West outer wall -->
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-10 0 1.0 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>0.3 14.6 2.0</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>0.3 14.6 2.0</size></box></geometry>
+          <material><ambient>0.560 0.283 0.090 1</ambient><diffuse>0.560 0.283 0.090 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- INNER BLOCK (left side: x=-8 to x=-3, y=-3 to y=+3) -->
+
+    <!-- Inner block North wall -->
+    <model name="block_north">
+      <static>true</static>
+      <pose>-5.5 3 0.9 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>5 0.2 1.8</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>5 0.2 1.8</size></box></geometry>
+          <material><ambient>0.565 0.287 0.095 1</ambient><diffuse>0.565 0.287 0.095 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Inner block South wall -->
+    <model name="block_south">
+      <static>true</static>
+      <pose>-5.5 -3 0.9 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>5 0.2 1.8</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>5 0.2 1.8</size></box></geometry>
+          <material><ambient>0.570 0.291 0.100 1</ambient><diffuse>0.570 0.291 0.100 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Inner block East wall -->
+    <model name="block_east">
+      <static>true</static>
+      <pose>-3 0 0.9 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>0.2 6 1.8</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>0.2 6 1.8</size></box></geometry>
+          <material><ambient>0.540 0.267 0.070 1</ambient><diffuse>0.540 0.267 0.070 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Inner block West wall -->
+    <model name="block_west">
+      <static>true</static>
+      <pose>-8 0 0.9 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>0.2 6 1.8</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>0.2 6 1.8</size></box></geometry>
+          <material><ambient>0.535 0.263 0.065 1</ambient><diffuse>0.535 0.263 0.065 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- RIGHT CORRIDOR CHANNEL (x=0 to x=+9, between y=-2 and y=+2) -->
+
+    <!-- Corridor top wall -->
+    <model name="corridor_top">
+      <static>true</static>
+      <pose>4.5 2 0.9 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>9 0.2 1.8</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>9 0.2 1.8</size></box></geometry>
+          <material><ambient>0.530 0.259 0.060 1</ambient><diffuse>0.530 0.259 0.060 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Corridor bottom wall -->
+    <model name="corridor_bottom">
+      <static>true</static>
+      <pose>4.5 -2 0.9 0 0 0</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>9 0.2 1.8</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>9 0.2 1.8</size></box></geometry>
+          <material><ambient>0.525 0.255 0.055 1</ambient><diffuse>0.525 0.255 0.055 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+  
+    <!-- ============================================================
+         paper_ws: LOW-FRICTION PATCHES (slip world). Wheels have mu = 1.0;
+         patch mu sets the contact friction. Patches are 2 mm thick (top at
+         z = 0.002) so the wheels/caster roll onto them without a bump.
+         Traction limit ~ mu*g: 0.1 -> ~1 m/s^2, far below the drive
+         plugin's 10 m/s^2 -> wheel spin on starts, sliding on stops.
+         ============================================================ -->
+    <!-- Corridor patch, mu = 0.1: on the straight path east of spawn (verification test) -->
+    <model name="slip_patch_corridor">
+      <static>true</static>
+      <pose>3.0 0.0 0.001 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>2.0 3.0 0.002</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>0.1</mu><mu2>0.1</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>2.0 3.0 0.002</size></box></geometry>
+          <material><ambient>0.35 0.65 0.95 1</ambient><diffuse>0.35 0.65 0.95 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- North open area, mu = 0.3 (mild slip) -->
+    <model name="slip_patch_north">
+      <static>true</static>
+      <pose>4.5 4.5 0.001 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>3.0 3.0 0.002</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>0.3</mu><mu2>0.3</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>3.0 3.0 0.002</size></box></geometry>
+          <material><ambient>0.55 0.80 0.95 1</ambient><diffuse>0.55 0.80 0.95 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- South open area, mu = 0.05 (severe slip) -->
+    <model name="slip_patch_south">
+      <static>true</static>
+      <pose>4.5 -4.5 0.001 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>3.0 3.0 0.002</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>0.05</mu><mu2>0.05</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>3.0 3.0 0.002</size></box></geometry>
+          <material><ambient>0.20 0.45 0.85 1</ambient><diffuse>0.20 0.45 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

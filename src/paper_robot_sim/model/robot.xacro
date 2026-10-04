@@ -104,6 +104,9 @@ xmlns:xacro="http://www.ros.org/wiki/xacro">
     </inertial>
 </xacro:macro>
 
+<!-- paper_ws: gyro z bias (rad/s); 0.0000075 = original robot, 0.01 = gyro-bias variant -->
+<xacro:arg name="gyro_bias_z" default="0.0000075"/>
+
 <xacro:include filename="$(find paper_robot_sim)/model/robot.gazebo"/>
 
 <!-- We need to have this link otherwise Gazebo will complain -->
