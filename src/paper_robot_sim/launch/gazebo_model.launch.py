@@ -6,6 +6,11 @@ Launch arguments:
                default: indoor_world.sdf     slip world: indoor_world_slip.sdf
   gyro_bias_z  gyro z bias_mean in rad/s
                default: 0.0000075 (original robot)   gyro-bias variant: 0.01
+  imu_rate     IMU output rate in Hz; default 1000 (= physics step, adopted 2026-10-05 after
+               check_imu_integration PASS on session 20261005_045207). Recordings are averaged
+               back to 50 Hz offline so accelerations are integrated, not point-sampled; noise
+               is scaled so the averaged 50 Hz noise equals the original. imu_rate:=50 gives
+               the original point-sampled IMU (start/stop errors up to 0.1 m/s, impacts missed).
   x, y, yaw    spawn pose (m, m, rad); default 0 0 0
                terrain_world.sdf lane i starts at x=0, y=3.8*i (facing +x)
 
@@ -14,6 +19,7 @@ Examples:
   ros2 launch paper_robot_sim gazebo_model.launch.py world:=indoor_world_slip.sdf
   ros2 launch paper_robot_sim gazebo_model.launch.py gyro_bias_z:=0.01
   ros2 launch paper_robot_sim gazebo_model.launch.py world:=terrain_world.sdf y:=15.2
+  ros2 launch paper_robot_sim gazebo_model.launch.py imu_rate:=50    # original IMU
 
 Changes vs ws_mobile/mobile_robot: package renamed; gz_args "-r -v4" (Gazebo 10 rejects
 "-v -v4"); world and gyro bias selectable via launch arguments (OpaqueFunction, because
@@ -43,11 +49,14 @@ def launch_setup(context, *args, **kwargs):
 
     gyro_bias_z = LaunchConfiguration('gyro_bias_z').perform(context)
     float(gyro_bias_z)  # fail early on a non-numeric value
+    imu_rate = LaunchConfiguration('imu_rate').perform(context)
+    if not 0 < float(imu_rate) <= 1000:
+        raise ValueError(f'imu_rate must be in (0, 1000] Hz (physics step 1 ms), got {imu_rate}')
     sx, sy, syaw = (float(LaunchConfiguration(k).perform(context)) for k in ('x', 'y', 'yaw'))
 
     robot_description = xacro.process_file(
         os.path.join(share, 'model', 'robot.xacro'),
-        mappings={'gyro_bias_z': gyro_bias_z},
+        mappings={'gyro_bias_z': gyro_bias_z, 'imu_rate': imu_rate},
     ).toxml()
 
     gazebo = IncludeLaunchDescription(
@@ -77,7 +86,7 @@ def launch_setup(context, *args, **kwargs):
         output='screen',
     )
 
-    print(f'[paper_robot_sim] world={world_path}  gyro_bias_z={gyro_bias_z}  '
+    print(f'[paper_robot_sim] world={world_path}  gyro_bias_z={gyro_bias_z}  imu_rate={imu_rate}  '
           f'spawn=({sx}, {sy}, yaw {syaw})')
     return [gazebo, spawn, robot_state_publisher, bridge]
 
@@ -88,6 +97,8 @@ def generate_launch_description():
                               description='World file in paper_robot_sim/model/ or absolute path'),
         DeclareLaunchArgument('gyro_bias_z', default_value='0.0000075',
                               description='Gyro z bias_mean (rad/s); 0.01 for the gyro-bias variant'),
+        DeclareLaunchArgument('imu_rate', default_value='1000',
+                              description='IMU output rate (Hz); averaged to 50 Hz offline. 50 = original'),
         DeclareLaunchArgument('x', default_value='0.0', description='spawn x (m)'),
         DeclareLaunchArgument('y', default_value='0.0', description='spawn y (m)'),
         DeclareLaunchArgument('yaw', default_value='0.0', description='spawn yaw (rad)'),

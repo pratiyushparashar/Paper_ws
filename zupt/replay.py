@@ -37,9 +37,39 @@ def quat_to_rpy(x, y, z, w):
     return roll, pitch, yaw
 
 
-def load_session(data_dir, sid):
+def decimate_imu(imu, target_hz=50.0):
+    """IMU recorded faster than target (launch arg imu_rate) -> averages over fixed TIME bins of
+    1/target_hz s. Averaging rates and specific forces = integrating them over the bin, which is
+    what a real IMU's internal filtering does; point-sampling at 50 Hz loses most of a 55 ms
+    start/stop ramp and all of a 1 ms contact impulse (step 5c finding). Bins are by time, not
+    by message count, so messages the logger dropped only thin a bin instead of shifting every
+    later bin. Orientation and the other columns: last sample of the bin; timestamp = bin end."""
+    t = imu["time_sec"].astype(float).values + imu["time_nsec"].astype(float).values * 1e-9
+    if len(t) < 3:
+        return imu
+    rate = 1.0 / float(np.median(np.diff(t)))
+    if rate < 1.5 * target_hz:
+        return imu
+    b = np.floor((t - t[0]) * target_hz + 1e-9).astype(int)
+    avg_cols = [c for c in ("angular_vel_x", "angular_vel_y", "angular_vel_z",
+                            "linear_acc_x", "linear_acc_y", "linear_acc_z") if c in imu]
+    out = imu.groupby(b).last().reset_index(drop=True)
+    out[avg_cols] = imu[avg_cols].groupby(b).mean().reset_index(drop=True)
+    te = t[0] + (np.unique(b) + 1) / target_hz
+    out["time_sec"] = np.floor(te).astype(int)
+    out["time_nsec"] = np.round((te - np.floor(te)) * 1e9).astype(int)
+    if "timestamp" in out:
+        out["timestamp"] = te
+    full = len(imu) / len(out)
+    if full < 0.9 * rate / target_hz:
+        print(f"[decimate_imu] note: {100 * (1 - full * target_hz / rate):.0f}% of IMU messages "
+              f"missing (logger dropped them); bins averaged over the messages present")
+    return out
+
+
+def load_session(data_dir, sid, imu_hz=50.0):
     p = lambda name: os.path.join(data_dir, f"{name}_{sid}.csv")
-    imu = pd.read_csv(p("imu"))
+    imu = decimate_imu(pd.read_csv(p("imu")), imu_hz)
     odom = pd.read_csv(p("odom"))
     cmd = pd.read_csv(p("cmd_vel")) if os.path.exists(p("cmd_vel")) else None
     gt = pd.read_csv(p("ground_truth"))

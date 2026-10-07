@@ -1,0 +1,2 @@
+elapsed_sec,imu_hz,odom_hz,scan_hz,cmd_vel_hz,gt_hz
+5.0,11.0,21.8,2.2,0.0,11.2

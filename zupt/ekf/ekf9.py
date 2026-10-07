@@ -95,6 +95,7 @@ def load_ekf9_params(path):
 class Ekf9:
     def __init__(self, p: Ekf9Params, x0=0.0, y0=0.0, theta0=0.0):
         self.p = p
+        self.n = N                       # state size; subclasses may augment (ekf_lidar clones)
         self.x = np.zeros(N)
         self.x[[IX, IY, ITH]] = x0, y0, theta0
         self.P = np.diag([p.p0_xy ** 2, p.p0_xy ** 2, p.p0_theta ** 2,
@@ -117,16 +118,17 @@ class Ekf9:
         if dt <= 0:
             return
         self.t = t
-        x, y, th, u, s, w, bg, bax, bay = self.x
+        x, y, th, u, s, w, bg, bax, bay = self.x[:N]
         ax, ay = self.acc
         c, sn = math.cos(th), math.sin(th)
-        self.x = np.array([x + (u * c - s * sn) * dt,
-                           y + (u * sn + s * c) * dt,
-                           wrap(th + w * dt),
-                           u + (ax - bax + w * s) * dt,
-                           s + (ay - bay - w * u) * dt,
-                           w, bg, bax, bay])
-        F = np.eye(N)
+        self.x = self.x.copy()             # entries beyond N (clones) are constant
+        self.x[:N] = [x + (u * c - s * sn) * dt,
+                      y + (u * sn + s * c) * dt,
+                      wrap(th + w * dt),
+                      u + (ax - bax + w * s) * dt,
+                      s + (ay - bay - w * u) * dt,
+                      w, bg, bax, bay]
+        F = np.eye(self.n)
         F[IX, ITH] = (-u * sn - s * c) * dt
         F[IX, IU] = c * dt
         F[IX, IS] = -sn * dt
@@ -141,8 +143,9 @@ class Ekf9:
         F[IS, IW] = -u * dt
         F[IS, IBAY] = -dt
         p = self.p
-        Q = np.diag([p.q_xy, p.q_xy, p.q_theta, p.q_acc, p.q_acc,
-                     p.q_w * (1 + p.k_w_slip * p_slip), p.q_bg, p.q_ba, p.q_ba]) * dt
+        Q = np.zeros((self.n, self.n))
+        Q[:N, :N] = np.diag([p.q_xy, p.q_xy, p.q_theta, p.q_acc, p.q_acc,
+                             p.q_w * (1 + p.k_w_slip * p_slip), p.q_bg, p.q_ba, p.q_ba]) * dt
         self.P = F @ self.P @ F.T + Q
 
     # ---------------------------------------------------------------- update core
@@ -155,7 +158,7 @@ class Ekf9:
         K = np.linalg.solve(S.T, (self.P @ H.T).T).T
         self.x = self.x + K @ innov
         self.x[ITH] = wrap(self.x[ITH])
-        I_KH = np.eye(N) - K @ H
+        I_KH = np.eye(self.n) - K @ H
         self.P = I_KH @ self.P @ I_KH.T + K @ R @ K.T          # Joseph form
         nis = float(innov @ np.linalg.solve(S, innov))
         self.last_innov[name] = (innov, nis)
@@ -163,22 +166,22 @@ class Ekf9:
 
     # ---------------------------------------------------------------- measurements
     def update_odom(self, v_odom, w_odom, r_odom=1.0):
-        H = np.zeros((2, N)); H[0, IU] = 1; H[1, IW] = 1
+        H = np.zeros((2, self.n)); H[0, IU] = 1; H[1, IW] = 1
         R = np.diag([self.p.r_odom_v, self.p.r_odom_w]) / (r_odom + EPS)
         return self._update("odom", [v_odom, w_odom], self.x[[IU, IW]], H, R)
 
     def update_gyro(self, gyro_z, r_imu=1.0):
-        H = np.zeros((1, N)); H[0, IW] = 1; H[0, IBG] = 1
+        H = np.zeros((1, self.n)); H[0, IW] = 1; H[0, IBG] = 1
         R = [[self.p.r_gyro / (r_imu + EPS)]]
         return self._update("gyro", [gyro_z], [self.x[IW] + self.x[IBG]], H, R)
 
     def update_zupt(self, r_scale=1.0):
-        H = np.zeros((2, N)); H[0, IU] = 1; H[1, IS] = 1
+        H = np.zeros((2, self.n)); H[0, IU] = 1; H[1, IS] = 1
         R = np.eye(2) * self.p.r_zupt * r_scale
         return self._update("zupt", [0.0, 0.0], self.x[[IU, IS]], H, R)
 
     def update_zaru(self, r_scale=1.0):
-        H = np.zeros((1, N)); H[0, IW] = 1
+        H = np.zeros((1, self.n)); H[0, IW] = 1
         return self._update("zaru", [0.0], [self.x[IW]], H, [[self.p.r_zaru * r_scale]])
 
     def update_nhc(self, p_slip=0.0):
@@ -186,7 +189,7 @@ class Ekf9:
         a few dozen updates; above nhc_p_skip the constraint is therefore not applied at all."""
         if p_slip >= self.p.nhc_p_skip:
             return None
-        H = np.zeros((1, N)); H[0, IS] = 1; H[0, IW] = -self.p.lever_l
+        H = np.zeros((1, self.n)); H[0, IS] = 1; H[0, IW] = -self.p.lever_l
         R = [[self.p.r_nhc / (1.0 - min(max(p_slip, 0.0), 1.0) + EPS)]]
         h = self.x[IS] - self.p.lever_l * self.x[IW]
         return self._update("nhc", [0.0], [h], H, R)

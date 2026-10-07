@@ -1,0 +1,18 @@
+# PROVISIONAL segment-check parameters (step 5c) — development only.
+# sigma0 / k_misclosure set from the dev sessions' per-segment errors (median 0.08 m, worst 0.6 m
+# on flat; 50 Hz instantaneous-sample aliasing of start/stop steps dominates, see docs/step5c.md).
+segments:
+  status: provisional
+  lever_l: 0.3
+  post_window: 0.3
+  min_pre_samples: 10
+  sigma0: 0.05
+  k_misclosure: 0.25
+  sigma_wheel_rel: 0.02
+  sigma_wheel_abs: 0.01
+  z_slip: 3.0
+  min_slip: 0.15
+  v_slip: 0.1
+  min_scale_dist: 1.0
+  scale_max_sigma: 0.005      # 0.5 %: well below a typical 1-2 % wheel radius error
+  scale_min_segments: 5

@@ -1,0 +1,9 @@
+time_sec,time_nsec,timestamp,timestamp_source,linear_x,linear_y,linear_z,angular_x,angular_y,angular_z
+174,675000000,174.675,receipt_approx,0.5,0.0,0.0,0.0,0.0,0.0
+178,955000000,178.955,receipt_approx,0.0,0.0,0.0,0.0,0.0,0.0
+183,762000000,183.762,receipt_approx,0.5,0.0,0.0,0.0,0.0,0.0
+184,975000000,184.975,receipt_approx,0.0,0.0,0.0,0.0,0.0,0.0
+189,500000000,189.5,receipt_approx,0.5,0.0,0.0,0.0,0.0,0.0
+191,759000000,191.759,receipt_approx,0.0,0.0,0.0,0.0,0.0,0.0
+195,197000000,195.197,receipt_approx,0.5,0.0,0.0,0.0,0.0,0.0
+199,593000000,199.593,receipt_approx,0.0,0.0,0.0,0.0,0.0,0.0
